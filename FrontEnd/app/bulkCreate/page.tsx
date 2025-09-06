@@ -40,13 +40,13 @@ import ERC20_ABI from "@/abi/ERC20_ABI.json";
 //   "function decimals() external view returns (uint8)"
 // ];
 
-const CONTRACT_ADDRESS = "0x280593931820aBA367dB060162cA03CD59EC29c9";
+const CONTRACT_ADDRESS = '0xd657148c0039FdDA023281BBc4A4C2a123844380';
 
 // Token addresses (updated with valid addresses)
 const TOKEN_ADDRESSES = {
   'USDT': '0x7A8532Bd4067cD5C9834cD0eCcb8e71088c9fbf8',
   'USDC': '0x437011e4f16a4Be60Fe01aD6678dBFf81AEbaEd4',
-  'DAI': '0xA0c61934a9bF661c0f41db06538e6674CDccFFf2'  
+  'DAI': '0xA0c61934a9bF661c0f41db06538e6674CDccFFf2'
 };
 
 interface BulkGift {
@@ -84,54 +84,54 @@ export default function CreateBulkCard() {
   const [isLoading, setIsLoading] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [showWalletOptions, setShowWalletOptions] = useState(false);
-  
+
   const { address, isConnected } = useAccount();
   const { connect } = useConnect();
   const connectors = useConnectors();
   const { toast } = useToast();
-  
+
   const tokens = ['USDT', 'USDC', 'DAI'];
   const minDateTime = format(new Date(), "yyyy-MM-dd'T'HH:mm");
 
   // Input validation function
   const validateGiftData = (gifts: BulkGift[]): string[] => {
     const errors: string[] = [];
-    
+
     gifts.forEach((gift, index) => {
       // Check email format
       if (!gift.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(gift.email)) {
         errors.push(`Gift ${index + 1}: Invalid email format`);
       }
-      
+
       // Check amount is positive number
       const amount = parseFloat(gift.amount);
       if (isNaN(amount) || amount <= 0 || amount > 1000000) {
         errors.push(`Gift ${index + 1}: Amount must be between 0 and 1,000,000`);
       }
-      
+
       // Check expiry is in future and not too far
       const expiryTime = new Date(gift.expiry).getTime();
       const now = Date.now();
       const maxExpiry = now + (365 * 24 * 60 * 60 * 1000); // 1 year from now
-      
+
       if (expiryTime <= now) {
         errors.push(`Gift ${index + 1}: Expiry must be in the future`);
       }
       if (expiryTime > maxExpiry) {
         errors.push(`Gift ${index + 1}: Expiry cannot be more than 1 year from now`);
       }
-      
+
       // Check message length and content
       if (!gift.message || gift.message.length < 3 || gift.message.length > 50) {
         errors.push(`Gift ${index + 1}: Message must be 3-50 characters`);
       }
-      
+
       // Check for non-ASCII characters that might cause issues
       if (!/^[\x20-\x7E]*$/.test(gift.message)) {
         errors.push(`Gift ${index + 1}: Message contains invalid characters`);
       }
     });
-    
+
     return errors;
   };
 
@@ -153,7 +153,7 @@ export default function CreateBulkCard() {
 
   // Add new row for multi-field input
   const addBulkGiftRow = () => {
-    setBulkGifts([...bulkGifts, {email: '', token: 'USDT', amount: '', expiry: '', message: '' }]);
+    setBulkGifts([...bulkGifts, { email: '', token: 'USDT', amount: '', expiry: '', message: '' }]);
   };
 
   // Remove row from multi-field input
@@ -165,7 +165,7 @@ export default function CreateBulkCard() {
   // Group gifts by token for contract compatibility
   const groupGiftsByToken = (gifts: BulkGift[]): TokenGroup[] => {
     const groups: Record<string, BulkGift[]> = {};
-    
+
     gifts.forEach(gift => {
       if (!groups[gift.token]) {
         groups[gift.token] = [];
@@ -258,45 +258,45 @@ export default function CreateBulkCard() {
     }
 
     const { generatedGifts } = await backendResponse.json();
-    
+
     // Step 2: Setup contracts and prepare data
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-    
+    const contract = new ethers.Contract(CONTRACT_ADDRESS as string, CONTRACT_ABI, signer);
+
     const tokenAddress = TOKEN_ADDRESSES[tokenGroup.token as keyof typeof TOKEN_ADDRESSES];
     const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
     console.log(`Using token contract at ${tokenAddress} for ${tokenGroup.token}`);
-    
+
     // Get token decimals
     const decimals = await tokenContract.decimals();
     console.log('DAI decimals:', await tokenContract.decimals());
     console.log('DAI balance:', ethers.formatUnits(await tokenContract.balanceOf(address), decimals));
-    
-    const amounts = tokenGroup.gifts.map(gift => 
+
+    const amounts = tokenGroup.gifts.map(gift =>
       ethers.parseUnits(gift.amount, decimals)
     );
-    const expiries = tokenGroup.gifts.map(gift => 
+    const expiries = tokenGroup.gifts.map(gift =>
       Math.floor(new Date(gift.expiry).getTime() / 1000)
     );
     const messages = tokenGroup.gifts.map(gift => gift.message);
-    const giftIDs = generatedGifts.map((gift: any) => 
+    const giftIDs = generatedGifts.map((gift: any) =>
       ethers.keccak256(ethers.toUtf8Bytes(gift.rawCode))
     );
     const creator = ethers.keccak256(ethers.getAddress(address));
-    
+
     // Step 3: Check balance and approve tokens
     const totalAmount = amounts.reduce((sum, amount) => sum + amount, BigInt(0));
-    
+
     // Check balance
     const balance = await tokenContract.balanceOf(address);
     if (balance < totalAmount) {
       throw new Error(`Insufficient ${tokenGroup.token} balance. Need: ${ethers.formatUnits(totalAmount, decimals)}, Have: ${ethers.formatUnits(balance, decimals)}`);
     }
-    
+
     // Check current allowance
-    const currentAllowance = await tokenContract.allowance(address, CONTRACT_ADDRESS);
-    
+    const currentAllowance = await tokenContract.allowance(address, CONTRACT_ADDRESS as string);
+
     // If allowance is insufficient, approve the contract
     if (currentAllowance < totalAmount) {
       console.log(`Approving ${tokenGroup.token} spending...`);
@@ -304,7 +304,7 @@ export default function CreateBulkCard() {
       await approveTx.wait();
       console.log(`${tokenGroup.token} approval confirmed`);
     }
-    
+
     // Step 4: Execute blockchain transaction with better error handling
     try {
       // First estimate gas to catch errors early
@@ -316,12 +316,12 @@ export default function CreateBulkCard() {
         giftIDs,
         creator
       );
-      
+
       console.log(`Gas estimate: ${gasEstimate.toString()}`);
-      
+
       // Execute with higher gas limit (using BigInt multiplication)
       const gasLimit = (gasEstimate * BigInt(120)) / BigInt(100); // Add 20% buffer
-      
+
       const tx = await contract.createBulkGifts(
         tokenAddress,
         amounts,
@@ -333,7 +333,7 @@ export default function CreateBulkCard() {
           gasLimit: gasLimit
         }
       );
-      
+
       return { tx, generatedGifts };
     } catch (error: any) {
       console.error('Contract call failed:', error);
@@ -355,7 +355,8 @@ export default function CreateBulkCard() {
         }
       }
       throw error;
-    }}
+    }
+  }
 
   // Create bulk gifts on blockchain and backend with debug info
   const handleBulkCreate = async () => {
@@ -371,7 +372,7 @@ export default function CreateBulkCard() {
     setIsLoading(true);
     try {
       const results = [];
-      
+
       // Process each token group separately
       for (const tokenGroup of tokenGroups) {
         console.log(`Processing ${tokenGroup.token} group:`, {
@@ -391,15 +392,15 @@ export default function CreateBulkCard() {
           title: "Transaction submitted",
           description: `${tokenGroup.token} batch - Transaction hash: ${tx.hash}`,
         });
-        
+
         const receipt = await tx.wait();
         results.push({ receipt, generatedGifts, tokenGroup });
       }
-      
+
       // Update preview data with actual transaction info
       let updatedPreviewData = [...previewData];
       let giftIndex = 0;
-      
+
       results.forEach(({ receipt, generatedGifts }) => {
         generatedGifts.forEach((gift: any) => {
           if (updatedPreviewData[giftIndex]) {
@@ -412,14 +413,14 @@ export default function CreateBulkCard() {
           }
         });
       });
-      
+
       setPreviewData(updatedPreviewData);
-      
+
       toast({
         title: "All bulk gifts created successfully!",
         description: `${bulkGifts.length} gifts created across ${tokenGroups.length} token types.`,
       });
-      
+
     } catch (error) {
       console.error('Error creating bulk gifts:', error);
       toast({
@@ -455,7 +456,7 @@ export default function CreateBulkCard() {
       });
 
       setBulkGifts(giftsFromCsv);
-      
+
       // Show token grouping info
       const groups = groupGiftsByToken(giftsFromCsv);
       toast({
@@ -471,11 +472,11 @@ export default function CreateBulkCard() {
   const downloadResults = () => {
     const csvContent = [
       'Email,Token,Amount,GiftID,TransactionHash,Expiry',
-      ...previewData.map(gift => 
+      ...previewData.map(gift =>
         `${gift.email},${gift.token},${gift.amount},${gift.giftID},${gift.transactionHash},${new Date(gift.expiry * 1000).toISOString()}`
       )
     ].join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -518,7 +519,7 @@ export default function CreateBulkCard() {
               )}
             </div>
           )}
-          
+
           <div className="space-y-4">
             <Label htmlFor="csv-upload">Upload CSV (email,token,amount,expiry,message)</Label>
             <Input
@@ -544,7 +545,7 @@ export default function CreateBulkCard() {
                     placeholder="Amount"
                     className="bg-background/40 border-primary/30"
                   />
-                  
+
                   <select
                     className="bg-background/40 border-primary/30 rounded-md px-3 py-2 w-full"
                     value={gift.token}
@@ -565,12 +566,12 @@ export default function CreateBulkCard() {
                 />
 
                 <Input
-                    type="email"
-                    value={gift.email}
-                    onChange={(e) => handleBulkGiftChange(index, 'email', e.target.value)}
-                    placeholder="recipient@email.com"
-                    className="bg-background/40 border-primary/30"
-                  />
+                  type="email"
+                  value={gift.email}
+                  onChange={(e) => handleBulkGiftChange(index, 'email', e.target.value)}
+                  placeholder="recipient@email.com"
+                  className="bg-background/40 border-primary/30"
+                />
 
                 <Textarea
                   placeholder="Gift message (3-50 characters)"
@@ -593,7 +594,7 @@ export default function CreateBulkCard() {
                 </div>
               </div>
             ))}
-            
+
             <Button
               type="button"
               onClick={addBulkGiftRow}
@@ -647,7 +648,7 @@ export default function CreateBulkCard() {
                   <Zap className="h-5 w-5" />
                   {isLoading ? 'Creating Bulk Gifts...' : `Create ${tokenGroups.length} Transaction${tokenGroups.length > 1 ? 's' : ''}`}
                 </Button>
-                
+
                 {previewData.length > 0 && previewData[0].transactionHash !== 'pending' && (
                   <Button
                     className="w-full gap-2"

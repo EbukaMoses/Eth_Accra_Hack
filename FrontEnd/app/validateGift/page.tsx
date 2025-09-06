@@ -17,7 +17,7 @@ import { ethers } from "ethers";
 import GiftChainABI from "../../abi/GiftChain.json";
 import erc20ABI from "../../abi/erc20ABI.json";
 
-const CONTRACT_ADDRESS = "0x4dbdd0111E8Dd73744F1d9A60e56129009eEE473";
+const CONTRACT_ADDRESS = "0xd657148c0039FdDA023281BBc4A4C2a123844380";
 const PROVIDER_URL = "https://eth-sepolia.g.alchemy.com/v2/uoHUh-NxGIzghN1job_SDZjGuQQ7snrT";
 
 interface ValidationErrors {

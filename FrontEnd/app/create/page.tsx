@@ -72,15 +72,15 @@ export default function CreateGiftCard() {
   ]
 
   // const RELAYER_ADDRESS = '0xA07139110776DF9621546441fc0a5417B8E945DF';
-  const CONTRACT_ADDRESS = '0xBeC796A588FF34569e5D64A73D6977aAD2DDf4b9'; //0xBeC796A588FF34569e5D64A73D6977aAD2DDf4b9
+  const CONTRACT_ADDRESS = '0xd657148c0039FdDA023281BBc4A4C2a123844380'; // Base Sepolia deployed address
   // const CONTRACT_ADDRESS = '0x00856f962b1472B1A6629006eD48a51A1B0B04CE'; //0xBeC796A588FF34569e5D64A73D6977aAD2DDf4b9
   const expiryTimestamp = Math.floor(new Date(form.expiry).getTime() / 1000);
 
-  // Token map (Sepolia testnet addresses)
+  // Token map (Base Sepolia testnet addresses)
   const tokenMap: Record<string, string> = {
-    USDT: '0x7A8532Bd4067cD5C9834cD0eCcb8e71088c9fbf8', // Sepolia USDT
-    USDC: '0x437011e4f16a4Be60Fe01aD6678dBFf81AEbaEd4', // Sepolia USDC
-    DAI: '0xA0c61934a9bF661c0f41db06538e6674CDccFFf2', // Sepolia DAI
+    USDT: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Base Sepolia USDT
+    USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // Base Sepolia USDC
+    DAI: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', // Base Sepolia DAI
   };
 
   const tokens = Object.keys(tokenMap);
@@ -104,21 +104,45 @@ export default function CreateGiftCard() {
         abi: ERC20_ABI,
       }
 
+      console.log('Getting decimals for token:', tokenAddress);
       const decimals = await publicClient.readContract({
         address: tokenAddress as `0x${string}`,
         abi: ERC20_ABI,
         functionName: "decimals",
-      })
-      // console.log(decimals)
-      const amountBN = parseUnits(amount, BigInt(decimals!.toString()));
+      });
+      console.log('Token decimals:', decimals);
+
+      if (!decimals) {
+        throw new Error('Could not get token decimals');
+      }
+
+      const amountBN = parseUnits(amount, BigInt(decimals.toString()));
+      console.log('Amount in wei:', amountBN.toString());
 
       let tx;
       if (task === "approve") {
+        console.log('Approving token:', {
+          tokenAddress,
+          contractAddress: CONTRACT_ADDRESS,
+          amount: amountBN.toString(),
+          amountFormatted: amount
+        });
+
+        // Check current allowance first
+        const currentAllowance = await tokenContract.allowance(address, CONTRACT_ADDRESS);
+        console.log('Current allowance:', currentAllowance.toString());
+
+        if (currentAllowance >= amountBN) {
+          console.log('Allowance already sufficient');
+          return true;
+        }
+
         tx = await tokenContract.approve(CONTRACT_ADDRESS, amountBN);
+        console.log('Approval transaction sent:', tx.hash);
       }
 
       if (task === "create") {
-        const giftChainContract = new Contract(CONTRACT_ADDRESS, GIFTCHAIN_ABI, signer);
+        const giftChainContract = new Contract(CONTRACT_ADDRESS as string, GIFTCHAIN_ABI, signer);
         const creatorHash = keccak256(getAddress(address!));
         tx = await giftChainContract.createGift(
           tokenAddress,
@@ -137,7 +161,26 @@ export default function CreateGiftCard() {
 
       return true;
     } catch (err: any) {
-      setError(`Approval failed: ${err.message.split("(")[0] || err.message || err.reason || 'Unknown error'}`);
+      console.error('Approval error:', err);
+
+      let errorMessage = 'Unknown error';
+      if (err.message) {
+        if (err.message.includes('user rejected')) {
+          errorMessage = 'Transaction was rejected by user';
+        } else if (err.message.includes('insufficient funds')) {
+          errorMessage = 'Insufficient funds for gas';
+        } else if (err.message.includes('network')) {
+          errorMessage = 'Network error. Please check your connection';
+        } else if (err.message.includes('execution reverted')) {
+          errorMessage = 'Transaction failed. Please check your token balance';
+        } else {
+          errorMessage = err.message.split("(")[0] || err.message;
+        }
+      } else if (err.reason) {
+        errorMessage = err.reason;
+      }
+
+      setError(`Approval failed: ${errorMessage}`);
       setIsApproving(false);
       return false;
     }
@@ -152,10 +195,16 @@ export default function CreateGiftCard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Create gift button clicked!');
+    console.log('Address:', address);
+    console.log('Contract address:', CONTRACT_ADDRESS);
+
     if (!address) {
       setError('Please connect your wallet to create a gift.');
       return;
     }
+    console.log('Form validation:', { amount: form.amount, expiry: form.expiry, message: form.message, token: form.token });
+
     if (!form.amount || parseFloat(form.amount) <= 0) {
       setError('Please enter a valid amount.');
       return;
@@ -178,12 +227,22 @@ export default function CreateGiftCard() {
     try {
       // Check and approve tokens
       const tokenAddress = tokenMap[form.token];
-      console.log(tokenAddress)
-      setIsApproving(true)
+      console.log('Token address:', tokenAddress);
+      console.log('Contract address:', CONTRACT_ADDRESS);
+
+      if (!CONTRACT_ADDRESS) {
+        setError('Contract address not configured. Please check your environment variables.');
+        return;
+      }
+
+      setIsApproving(true);
       const isApproved = await approveOrCreate(tokenAddress, form.amount, "approve", "");
 
-      setIsApproving(false)
-      if (!isApproved) return;
+      setIsApproving(false);
+      if (!isApproved) {
+        setError('Token approval failed. Please try again.');
+        return;
+      }
 
       // Call backend
       setIsLoading(true);

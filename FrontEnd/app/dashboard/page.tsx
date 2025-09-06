@@ -36,7 +36,7 @@ import ERC20_ABI from "@/abi/ERC20_ABI.json";
 import { AreaChart, BarChart, PieChart as PieChartComponent } from "@/components/ui/chart";
 
 // Contract address
-// const CONTRACT_ADDRESS = "0x280593931820aBA367dB060162cA03CD59EC29c9";
+const CONTRACT_ADDRESS = "0xd657148c0039FdDA023281BBc4A4C2a123844380";
 
 // Stable coins address supported
 const USDT = '0x7A8532Bd4067cD5C9834cD0eCcb8e71088c9fbf8'; // Sepolia USDT
@@ -194,9 +194,9 @@ export default function Dashboard() {
   const [barChartData, setBarChartData] = useState<ChartData[]>([]);
   const [pieChartData, setPieChartData] = useState<PieChartData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const {refetchCreatedGifts} = useUserGifts(userAddress);
-  const {refetchClaimedGifts} = useUserClaimedGifts(userAddress);
-  const {refetchReclaimedGifts} = useUserReclaimedGifts(userAddress);
+  const { refetchCreatedGifts } = useUserGifts(userAddress);
+  const { refetchClaimedGifts } = useUserClaimedGifts(userAddress);
+  const { refetchReclaimedGifts } = useUserReclaimedGifts(userAddress);
 
   // Pagination states
   const [createdCurrentPage, setCreatedCurrentPage] = useState(1);
@@ -204,239 +204,240 @@ export default function Dashboard() {
   const [cardsPerPage] = useState(6);
 
   const { address, isConnected } = useAccount();
-    const [mounted, setMounted] = useState(false);
-    const [giftIdCodes, setGiftIdCodes] = useState<Record<string, string>>({});
-    const [activeTab, setActiveTab] = useState("created");
-    const [tokenBalances, setTokenBalances] = useState<TokenBalances>({
-      USDT: { raw: BigInt(0), formatted: "0", decimal: BigInt(6), symbol: "" },
-      USDC: { raw: BigInt(0), formatted: "0", decimal: BigInt(6), symbol: "" },
-      DAI: { raw: BigInt(0), formatted: "0", decimal: BigInt(6), symbol: "" }
-    });
-    // const { toast } = useToast();
-  
-    const hashedAddress = useMemo(
-      () => (address ? ethers.keccak256(ethers.getAddress(address)).toLowerCase() : ''),
-      [address]
-    );
-  
-    // Use useSingleUserGifts hook to fetch gifts
-    const { gifts = [], loading, error, refetchGifts } = useSingleUserGifts(hashedAddress, address ? address : "");
-  
-    // Categorize gifts - only created and received (claimed)
-    const createdGifts = useMemo(
-      () => gifts.filter((gift: GiftCard) => gift.creator.id === hashedAddress),
-      [gifts, hashedAddress]
-    );
-    const receivedGifts = useMemo(
-      () => gifts.filter((gift: GiftCard) => gift.creator.id !== hashedAddress && gift.recipient == address?.toLowerCase()),
-      [gifts, hashedAddress, address]
-    );
-    const reclaimedGifts = useMemo(
-      () => gifts.filter((gift: GiftCard) => gift.creator.id === hashedAddress && gift.recipient == address?.toLowerCase()),
-      [gifts, hashedAddress, address]
-    );
+  const [mounted, setMounted] = useState(false);
+  const [giftIdCodes, setGiftIdCodes] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState("created");
+  const [tokenBalances, setTokenBalances] = useState<TokenBalances>({
+    USDT: { raw: BigInt(0), formatted: "0", decimal: BigInt(6), symbol: "" },
+    USDC: { raw: BigInt(0), formatted: "0", decimal: BigInt(6), symbol: "" },
+    DAI: { raw: BigInt(0), formatted: "0", decimal: BigInt(6), symbol: "" }
+  });
+  // const { toast } = useToast();
 
-    const formatDate = (timestamp: string): string => {
-        return new Date(Number.parseInt(timestamp) * 1000).toLocaleString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        })
+  const hashedAddress = useMemo(
+    () => (address ? ethers.keccak256(ethers.getAddress(address)).toLowerCase() : ''),
+    [address]
+  );
+
+  // Use useSingleUserGifts hook to fetch gifts
+  const { gifts = [], loading, error, refetchGifts } = useSingleUserGifts(hashedAddress, address ? address : "");
+
+  // Categorize gifts - only created and received (claimed)
+  const createdGifts = useMemo(
+    () => gifts.filter((gift: GiftCard) => gift.creator.id === hashedAddress),
+    [gifts, hashedAddress]
+  );
+  const receivedGifts = useMemo(
+    () => gifts.filter((gift: GiftCard) => gift.creator.id !== hashedAddress && gift.recipient == address?.toLowerCase()),
+    [gifts, hashedAddress, address]
+  );
+  const reclaimedGifts = useMemo(
+    () => gifts.filter((gift: GiftCard) => gift.creator.id === hashedAddress && gift.recipient == address?.toLowerCase()),
+    [gifts, hashedAddress, address]
+  );
+
+  const formatDate = (timestamp: string): string => {
+    return new Date(Number.parseInt(timestamp) * 1000).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
+  const fetchTokenInfo = async (tokenAddress: string) => {
+    const address = tokenAddress.toLowerCase();
+    if (tokenMetadataCache[address]) {
+      return tokenMetadataCache[address];
     }
-    
-    const fetchTokenInfo = async (tokenAddress: string) => {
-      const address = tokenAddress.toLowerCase();
-      if (tokenMetadataCache[address]) {
-        return tokenMetadataCache[address];
-      }
-  
-      console.log("Fetching token metadata for:", address);
+
+    console.log("Fetching token metadata for:", address);
+    try {
+      const provider = new ethers.JsonRpcProvider(PROVIDER_URL);
+
+      const tokenContract = new ethers.Contract(USDT, ERC20_ABI, provider);
+
+      const [
+        tokenDecimal,
+        tokenSymbol,
+      ] = await Promise.all([
+        tokenContract.decimals(),
+        tokenContract.symbol(),
+      ]);
+
+      setTokenMetadataCache({
+        ...tokenMetadataCache,
+        [address]: {
+          symbol: tokenSymbol,
+          decimals: tokenDecimal,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching token info:', error);
+    }
+  }
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    // const allGifts = [...createdGifts, ...receivedGifts];
+    // const symbol = Gift.token
+    return {
+      totalGifts: gifts.length,
+      totalValue: gifts.reduce((sum, gift) => {
+        let decimal;
+        if (gift.token == USDC.toLowerCase()) {
+          decimal = tokenBalances.USDC.decimal
+        } else if (gift.token == USDT.toLowerCase()) {
+          decimal = tokenBalances.USDT.decimal
+        } else if (gift.token == DAI.toLowerCase()) {
+          decimal = tokenBalances.DAI.decimal
+        } else {
+          decimal = 18
+        }
+        return sum + Number(formatUnits(gift.amount, decimal))
+      }, 0
+      ),
+      activeGifts: gifts.filter(gift => gift.status === "PENDING").length,
+      totalClaimed: gifts.filter(gift => gift.creator.id === hashedAddress && gift.status !== "PENDING").length
+    };
+  }, [gifts]);
+
+  // Fetch token balances
+  useEffect(() => {
+    const fetchTokenBalances = async () => {
+      if (!address || !isConnected) return;
+
       try {
-          const provider = new ethers.JsonRpcProvider(PROVIDER_URL);
-          
-          const tokenContract = new ethers.Contract(USDT, ERC20_ABI, provider);
-  
-          const [
-            tokenDecimal,
-            tokenSymbol,
-          ] = await Promise.all([
-            tokenContract.decimals(),
-            tokenContract.symbol(),
-          ]);
-  
-          setTokenMetadataCache({
-            ...tokenMetadataCache,
-            [address]: {
-              symbol: tokenSymbol,
-              decimals: tokenDecimal,
-            },
-          });
-        } catch (error) {
-          console.error('Error fetching token info:', error);
-        }
-    }
-  
-    // Calculate stats
-    const stats = useMemo(() => {
-      // const allGifts = [...createdGifts, ...receivedGifts];
-      // const symbol = Gift.token
-      return {
-        totalGifts: gifts.length,
-        totalValue: gifts.reduce((sum, gift) => {
-          let decimal;
-          if(gift.token == USDC.toLowerCase()) {
-            decimal = tokenBalances.USDC.decimal
-          } else if(gift.token == USDT.toLowerCase()) {
-            decimal = tokenBalances.USDT.decimal
-          } else if(gift.token == DAI.toLowerCase()){
-            decimal = tokenBalances.DAI.decimal
-          } else {
-            decimal = 18
+        const provider = new ethers.JsonRpcProvider(PROVIDER_URL);
+        // const ERC20_ABI = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
+
+        const USDTContract = new ethers.Contract(USDT, ERC20_ABI, provider);
+        const USDCContract = new ethers.Contract(USDC, ERC20_ABI, provider);
+        const DAIContract = new ethers.Contract(DAI, ERC20_ABI, provider);
+
+        const [
+          USDTBalance, USDTDecimal, USDTSymbol,
+          USDCBalance, USDCDecimal, USDCSymbol,
+          DAIBalance, DAIDecimal, DAISymbol
+        ] = await Promise.all([
+          USDTContract.balanceOf(address),
+          USDTContract.decimals(),
+          USDTContract.symbol(),
+          USDCContract.balanceOf(address),
+          USDCContract.decimals(),
+          USDCContract.symbol(),
+          DAIContract.balanceOf(address),
+          DAIContract.decimals(),
+          DAIContract.symbol(),
+        ]);
+
+        setTokenBalances({
+          USDT: {
+            raw: USDTBalance,
+            formatted: ethers.formatUnits(USDTBalance, USDTDecimal),
+            decimal: USDTDecimal,
+            symbol: USDTSymbol
+          },
+          USDC: {
+            raw: USDCBalance,
+            formatted: ethers.formatUnits(USDCBalance, USDCDecimal),
+            decimal: USDCDecimal,
+            symbol: USDCSymbol
+          },
+          DAI: {
+            raw: DAIBalance,
+            formatted: ethers.formatUnits(DAIBalance, DAIDecimal),
+            decimal: DAIDecimal,
+            symbol: DAISymbol
           }
-          return sum + Number(formatUnits(gift.amount, decimal))}, 0
-        ),
-        activeGifts: gifts.filter(gift => gift.status === "PENDING").length,
-        totalClaimed: gifts.filter(gift => gift.creator.id === hashedAddress && gift.status !== "PENDING").length
-      };
-    }, [gifts]);
-  
-    // Fetch token balances
-    useEffect(() => {
-      const fetchTokenBalances = async () => {
-        if (!address || !isConnected) return;
-  
-        try {
-          const provider = new ethers.JsonRpcProvider(PROVIDER_URL);
-          // const ERC20_ABI = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
-          
-          const USDTContract = new ethers.Contract(USDT, ERC20_ABI, provider);
-          const USDCContract = new ethers.Contract(USDC, ERC20_ABI, provider);
-          const DAIContract = new ethers.Contract(DAI, ERC20_ABI, provider);
-  
-          const [
-            USDTBalance, USDTDecimal, USDTSymbol,
-            USDCBalance, USDCDecimal, USDCSymbol,
-            DAIBalance, DAIDecimal, DAISymbol
-          ] = await Promise.all([
-            USDTContract.balanceOf(address),
-            USDTContract.decimals(),
-            USDTContract.symbol(),
-            USDCContract.balanceOf(address),
-            USDCContract.decimals(),
-            USDCContract.symbol(),
-            DAIContract.balanceOf(address),
-            DAIContract.decimals(),
-            DAIContract.symbol(),
-          ]);
-  
-          setTokenBalances({
-            USDT: {
-              raw: USDTBalance,
-              formatted: ethers.formatUnits(USDTBalance, USDTDecimal),
-              decimal: USDTDecimal,
-              symbol: USDTSymbol
-            },
-            USDC: {
-              raw: USDCBalance,
-              formatted: ethers.formatUnits(USDCBalance, USDCDecimal),
-              decimal: USDCDecimal,
-              symbol: USDCSymbol
-            },
-            DAI: {
-              raw: DAIBalance,
-              formatted: ethers.formatUnits(DAIBalance, DAIDecimal),
-              decimal: DAIDecimal,
-              symbol: DAISymbol
-            }
-          });
-        } catch (error) {
-          console.error('Error fetching token balances:', error);
-        }
-      };
-  
-      fetchTokenBalances();
-      }, [address, isConnected]);
-  
-     // Helper function to determine gift status
-     const getGiftStatus = useCallback((gift: GiftCard) => {
-      const now = Math.floor(Date.now() / 1000);
-      const isExpired = Number(gift.expiry) < now;
-      
-      // if (gift.creator.id === hashedAddress && gift.recipient === address?.toLowerCase()) {
-      if (gift.status === "RECLAIMED") {
-        return {
-          status: "RECLAIMED",
-          variant: "secondary" as const
-        };
+        });
+      } catch (error) {
+        console.error('Error fetching token balances:', error);
       }
-  
-      if (gift.status === "CLAIMED") {
-        return {
-          status: "CLAIMED",
-          variant: "default" as const
-        };
-      }
-      
-      if (isExpired) {
-        return {
-          status: "EXPIRED",
-          variant: "destructive" as const
-        };
-      }
-      
+    };
+
+    fetchTokenBalances();
+  }, [address, isConnected]);
+
+  // Helper function to determine gift status
+  const getGiftStatus = useCallback((gift: GiftCard) => {
+    const now = Math.floor(Date.now() / 1000);
+    const isExpired = Number(gift.expiry) < now;
+
+    // if (gift.creator.id === hashedAddress && gift.recipient === address?.toLowerCase()) {
+    if (gift.status === "RECLAIMED") {
       return {
-        status: "PENDING",
+        status: "RECLAIMED",
+        variant: "secondary" as const
+      };
+    }
+
+    if (gift.status === "CLAIMED") {
+      return {
+        status: "CLAIMED",
         variant: "default" as const
       };
-    }, []);
-  
-    // Efficiently fetch all gift ID codes from backend
-    useEffect(() => {
-      if (!gifts.length) return;
-      const idsToFetch = gifts
-        .map((g: GiftCard) => g.id.toLowerCase())
-        .filter((id: string) => !(id in giftIdCodes));
-      if (!idsToFetch.length) return;
-  
-      axios
-        .post('https://gift-chain-w3lp.vercel.app/api/gift-codes', { ids: idsToFetch })
-        .then((res: { data: Record<string, Record<string, string>> }) => {
-          const {data} = res; 
-          setGiftIdCodes((prev) => ({ ...prev, ...data.data }));
-        })
-        .catch(console.error);
-    }, [gifts]);
-  
-    useEffect(() => {
-      setMounted(true);
-    }, []);
-    if (!mounted) return null;
-  
-    if (loading) {
-      return (
-        <div className="container px-4 py-8 hexagon-bg">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <Spinner className="w-8 h-8" />
-          </div>
-        </div>
-      );
     }
-  
-    if (error) {
-      return (
-        <div className="container px-4 py-8 hexagon-bg">
-          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-            <AlertCircle className="w-12 h-12 text-red-500" />
-            <p className="text-lg text-red-500">Failed to load gifts</p>
-            <Button onClick={() => refetchGifts()}>
-              {loading ? <Spinner className="w-8 h-8" /> : "Retry"}
-            </Button>
-          </div>
-        </div>
-      );
+
+    if (isExpired) {
+      return {
+        status: "EXPIRED",
+        variant: "destructive" as const
+      };
     }
+
+    return {
+      status: "PENDING",
+      variant: "default" as const
+    };
+  }, []);
+
+  // Efficiently fetch all gift ID codes from backend
+  useEffect(() => {
+    if (!gifts.length) return;
+    const idsToFetch = gifts
+      .map((g: GiftCard) => g.id.toLowerCase())
+      .filter((id: string) => !(id in giftIdCodes));
+    if (!idsToFetch.length) return;
+
+    axios
+      .post('https://gift-chain-w3lp.vercel.app/api/gift-codes', { ids: idsToFetch })
+      .then((res: { data: Record<string, Record<string, string>> }) => {
+        const { data } = res;
+        setGiftIdCodes((prev) => ({ ...prev, ...data.data }));
+      })
+      .catch(console.error);
+  }, [gifts]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  if (!mounted) return null;
+
+  if (loading) {
+    return (
+      <div className="container px-4 py-8 hexagon-bg">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Spinner className="w-8 h-8" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container px-4 py-8 hexagon-bg">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <AlertCircle className="w-12 h-12 text-red-500" />
+          <p className="text-lg text-red-500">Failed to load gifts</p>
+          <Button onClick={() => refetchGifts()}>
+            {loading ? <Spinner className="w-8 h-8" /> : "Retry"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // // Compute dashboard data
   // const computeData = useCallback(async () => {
@@ -718,7 +719,7 @@ export default function Dashboard() {
       </div>
     );
   }
-        
+
   return (
     <div className="container px-4 py-8 hexagon-bg">
       <div className="mb-8">
@@ -919,15 +920,15 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <p className="font-medium text-primary">ID {giftIdCodes[card.id.toLowerCase()] || '...'}</p>
-                        <p className="text-sm text-muted-foreground">Expires: 
+                        <p className="text-sm text-muted-foreground">Expires:
                           {formatDate(card.expiry)}
                         </p>
-                        <p className="text-sm text-muted-foreground">Amount: 
+                        <p className="text-sm text-muted-foreground">Amount:
                           {
                             card.token === USDC.toLowerCase() ? formatUnits(card.amount, tokenBalances.USDC.decimal) + ` ${tokenBalances.USDC.symbol}` :
-                            card.token === USDT.toLowerCase() ? formatUnits(card.amount, tokenBalances.USDT.decimal) + ` ${tokenBalances.USDT.symbol}` :
-                            card.token === DAI.toLowerCase() ? formatUnits(card.amount, tokenBalances.DAI.decimal) + ` ${tokenBalances.DAI.symbol}` :
-                            formatUnits(card.amount, 18) + " N/A"
+                              card.token === USDT.toLowerCase() ? formatUnits(card.amount, tokenBalances.USDT.decimal) + ` ${tokenBalances.USDT.symbol}` :
+                                card.token === DAI.toLowerCase() ? formatUnits(card.amount, tokenBalances.DAI.decimal) + ` ${tokenBalances.DAI.symbol}` :
+                                  formatUnits(card.amount, 18) + " N/A"
                           }
                         </p>
                       </div>
@@ -964,18 +965,18 @@ export default function Dashboard() {
               {createdGifts.map((card) => {
                 const { status, variant } = getGiftStatus(card);
                 return (
-                <Card key={card.id || card.timeCreated} className={`overflow-hidden glass glow-card`}>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-primary">
-                          ID {giftIdCodes[card.id.toLowerCase()] || '...'}
-                        </CardTitle>
-                      </div>
-                      <Badge variant={variant}>
-                        {status}
-                      </Badge>
-                      {/* <div className="flex justify-start"> */}
+                  <Card key={card.id || card.timeCreated} className={`overflow-hidden glass glow-card`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-primary">
+                            ID {giftIdCodes[card.id.toLowerCase()] || '...'}
+                          </CardTitle>
+                        </div>
+                        <Badge variant={variant}>
+                          {status}
+                        </Badge>
+                        {/* <div className="flex justify-start"> */}
                         {/* <span>
                             {card.token !== DAI.toLowerCase() ? formatUnits(card.amount, 6) : formatUnits(card.amount, 18)} 
                             {card.token == USDT.toLowerCase() ? " USDT" : card.token == USDC.toLowerCase() ? " USDC" : " DAI"}
@@ -1003,87 +1004,87 @@ export default function Dashboard() {
                             <Gift className="mr-1 h-3 w-3" /> Reclaimed
                           </Badge>
                         )} */}
-                      {/* </div> */}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <div className="mb-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Recipient:</span>
-                        <span className="text-foreground">
-                          {card.recipient?.slice(0, 6)}...{card.recipient?.slice(-6)}
-                        </span>
+                        {/* </div> */}
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Amount:</span>
-                        <span>
-                          {
-                            card.token === USDC.toLowerCase() ? formatUnits(card.amount, tokenBalances.USDC.decimal) + ` ${tokenBalances.USDC.symbol}` :
-                            card.token === USDT.toLowerCase() ? formatUnits(card.amount, tokenBalances.USDT.decimal) + ` ${tokenBalances.USDT.symbol}` :
-                            card.token === DAI.toLowerCase() ? formatUnits(card.amount, tokenBalances.DAI.decimal) + ` ${tokenBalances.DAI.symbol}` :
-                            formatUnits(card.amount, 18) + " N/A"
-                          }
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Message:</span>
-                        <span className="text-foreground">{card.message}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Expiry Date:</span>
-                        <span className="text-foreground">
-                          {formatDate(card.expiry)}
-                        </span>
-                      </div>
-                      {card.status === "CLAIMED" && card.timeCreated && (
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <div className="mb-4 space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Claimed Date:</span>
+                          <span className="text-muted-foreground">Recipient:</span>
                           <span className="text-foreground">
-                            {formatDate(card.claimed.blockTimestamp)}
+                            {card.recipient?.slice(0, 6)}...{card.recipient?.slice(-6)}
                           </span>
                         </div>
-                      )}
-                      {card.status === "PENDING" && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Created Date:</span>
-                          <span className="text-foreground">
-                            {formatDate(card.timeCreated)}
+                          <span className="text-muted-foreground">Amount:</span>
+                          <span>
+                            {
+                              card.token === USDC.toLowerCase() ? formatUnits(card.amount, tokenBalances.USDC.decimal) + ` ${tokenBalances.USDC.symbol}` :
+                                card.token === USDT.toLowerCase() ? formatUnits(card.amount, tokenBalances.USDT.decimal) + ` ${tokenBalances.USDT.symbol}` :
+                                  card.token === DAI.toLowerCase() ? formatUnits(card.amount, tokenBalances.DAI.decimal) + ` ${tokenBalances.DAI.symbol}` :
+                                    formatUnits(card.amount, 18) + " N/A"
+                            }
                           </span>
                         </div>
-                      )}
-                      {card.status === "RECLAIMED" && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Reclaimed Date:</span>
+                          <span className="text-muted-foreground">Message:</span>
+                          <span className="text-foreground">{card.message}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Expiry Date:</span>
                           <span className="text-foreground">
-                            {formatDate(card.reclaimed.blockTimestamp)}
+                            {formatDate(card.expiry)}
                           </span>
                         </div>
+                        {card.status === "CLAIMED" && card.timeCreated && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Claimed Date:</span>
+                            <span className="text-foreground">
+                              {formatDate(card.claimed.blockTimestamp)}
+                            </span>
+                          </div>
+                        )}
+                        {card.status === "PENDING" && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Created Date:</span>
+                            <span className="text-foreground">
+                              {formatDate(card.timeCreated)}
+                            </span>
+                          </div>
+                        )}
+                        {card.status === "RECLAIMED" && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Reclaimed Date:</span>
+                            <span className="text-foreground">
+                              {formatDate(card.reclaimed.blockTimestamp)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      {status === "EXPIRED" && (
+                        <Button
+                          asChild
+                          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-border"
+                        >
+                          <Link href={`/gift?tab=reclaim&id=${card.id}`}>
+                            Reclaim <Gift className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
                       )}
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    {status === "EXPIRED" && (
-                      <Button
-                        asChild
-                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-border"
-                      >
-                        <Link href={`/gift?tab=reclaim&id=${card.id}`}>
-                          Reclaim <Gift className="ml-2 h-4 w-4" />
-                        </Link>
-                      </Button>
-                    )}
-                    {status === "PENDING" && (
-                      <Button variant="outline" asChild className="w-full border hover:bg-primary/10 glow-border">
-                        <Link href={`/gift?tab=validate&id=${card.id}`}>Check Status</Link>
-                      </Button>
-                    )}
-                    {(status === "CLAIMED" || status === "RECLAIMED") && (
-                      <Button variant="outline" asChild className="w-full border hover:bg-primary/10 glow-border">
-                        <Link href={`/gift/${card.id}`}>View Details</Link>
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
+                      {status === "PENDING" && (
+                        <Button variant="outline" asChild className="w-full border hover:bg-primary/10 glow-border">
+                          <Link href={`/gift?tab=validate&id=${card.id}`}>Check Status</Link>
+                        </Button>
+                      )}
+                      {(status === "CLAIMED" || status === "RECLAIMED") && (
+                        <Button variant="outline" asChild className="w-full border hover:bg-primary/10 glow-border">
+                          <Link href={`/gift/${card.id}`}>View Details</Link>
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
                 )
               })}
             </div>
@@ -1104,18 +1105,18 @@ export default function Dashboard() {
               {receivedGifts.map((card) => {
                 const { status, variant } = getGiftStatus(card);
                 return (
-                <Card key={card.id || card.timeCreated} className={`overflow-hidden glass glow-card`}>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-primary">
-                          ID {giftIdCodes[card.id.toLowerCase()] || '...'}
-                        </CardTitle>
-                      </div>
-                      <Badge variant={variant}>
-                        {status}
-                      </Badge>
-                      {/* <div className="flex justify-start">
+                  <Card key={card.id || card.timeCreated} className={`overflow-hidden glass glow-card`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-primary">
+                            ID {giftIdCodes[card.id.toLowerCase()] || '...'}
+                          </CardTitle>
+                        </div>
+                        <Badge variant={variant}>
+                          {status}
+                        </Badge>
+                        {/* <div className="flex justify-start">
                         {card.status === "claimed" && (
                           <Badge className="bg-primary text-primary-foreground">
                             <CheckCircle className="mr-1 h-3 w-3" /> Claimed
@@ -1127,68 +1128,69 @@ export default function Dashboard() {
                           </Badge>
                         )}
                       </div> */}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <div className="mb-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Amount:</span>
-                        <span>
-                          {
-                            card.token === USDC.toLowerCase() ? formatUnits(card.amount, tokenBalances.USDC.decimal) + ` ${tokenBalances.USDC.symbol}` :
-                            card.token === USDT.toLowerCase() ? formatUnits(card.amount, tokenBalances.USDT.decimal) + ` ${tokenBalances.USDT.symbol}` :
-                            card.token === DAI.toLowerCase() ? formatUnits(card.amount, tokenBalances.DAI.decimal) + ` ${tokenBalances.DAI.symbol}` :
-                            formatUnits(card.amount, 18) + " N/A"
-                          }
-                        </span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Message:</span>
-                        <span className="text-foreground">{card.message}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Expiry Date:</span>
-                        <span className="text-foreground">
-                          {formatDate(card.expiry)}
-                        </span>
-                      </div>
-                      {card.status === "CLAIMED" && (
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <div className="mb-4 space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Claimed Date:</span>
-                          <span className="text-foreground">
-                            {formatDate(card.claimed.blockTimestamp)}
+                          <span className="text-muted-foreground">Amount:</span>
+                          <span>
+                            {
+                              card.token === USDC.toLowerCase() ? formatUnits(card.amount, tokenBalances.USDC.decimal) + ` ${tokenBalances.USDC.symbol}` :
+                                card.token === USDT.toLowerCase() ? formatUnits(card.amount, tokenBalances.USDT.decimal) + ` ${tokenBalances.USDT.symbol}` :
+                                  card.token === DAI.toLowerCase() ? formatUnits(card.amount, tokenBalances.DAI.decimal) + ` ${tokenBalances.DAI.symbol}` :
+                                    formatUnits(card.amount, 18) + " N/A"
+                            }
                           </span>
                         </div>
-                      )}
-                      {card.status === "PENDING" && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Received Date:</span>
+                          <span className="text-muted-foreground">Message:</span>
+                          <span className="text-foreground">{card.message}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Expiry Date:</span>
                           <span className="text-foreground">
-                            {formatDate(card.timeCreated)}
+                            {formatDate(card.expiry)}
                           </span>
                         </div>
+                        {card.status === "CLAIMED" && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Claimed Date:</span>
+                            <span className="text-foreground">
+                              {formatDate(card.claimed.blockTimestamp)}
+                            </span>
+                          </div>
+                        )}
+                        {card.status === "PENDING" && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Received Date:</span>
+                            <span className="text-foreground">
+                              {formatDate(card.timeCreated)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      {status === "PENDING" && (
+                        <Button
+                          asChild
+                          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-border"
+                        >
+                          <Link href={`/gift?tab=claim&id=${card.id}`}>
+                            Claim Now <Gift className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
                       )}
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    {status === "PENDING" && (
-                      <Button
-                        asChild
-                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90 glow-border"
-                      >
-                        <Link href={`/gift?tab=claim&id=${card.id}`}>
-                          Claim Now <Gift className="ml-2 h-4 w-4" />
-                        </Link>
-                      </Button>
-                    )}
-                    {status === "CLAIMED" && (
-                      <Button variant="outline" asChild className="w-full border hover:bg-primary/10 glow-border">
-                        <Link href={`/gift/${card.id}`}>View Details</Link>
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
-              )}
+                      {status === "CLAIMED" && (
+                        <Button variant="outline" asChild className="w-full border hover:bg-primary/10 glow-border">
+                          <Link href={`/gift/${card.id}`}>View Details</Link>
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
+                )
+              }
               )}
             </div>
           )}

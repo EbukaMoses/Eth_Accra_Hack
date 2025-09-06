@@ -15,7 +15,7 @@ import { GET_GIFTS } from "../../hooks/subgraph/queries";
 import { useQuery } from "@apollo/client"
 
 // const CONTRACT_ADDRESS = process.env.NEXT_APP_GIFTCHAIN_ADDRESS
-const CONTRACT_ADDRESS = "0x280593931820aBA367dB060162cA03CD59EC29c9"
+const CONTRACT_ADDRESS = "0xd657148c0039FdDA023281BBc4A4C2a123844380"
 const PROVIDER_URL = "https://eth-sepolia.g.alchemy.com/v2/uoHUh-NxGIzghN1job_SDZjGuQQ7snrT"
 
 interface ValidationErrors {

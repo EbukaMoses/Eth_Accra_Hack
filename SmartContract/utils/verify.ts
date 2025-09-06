@@ -15,8 +15,12 @@ export const verify = async (contractAddress: string, args: any[]): Promise<void
   } catch (err: any) {
     if (err.message.toLowerCase().includes("already verified")) {
       console.log("Already Verified!");
+    } else if (err.message.toLowerCase().includes("invalid api key")) {
+      console.log("⚠️  Verification skipped: Invalid API key");
+      console.log("To verify manually, run:");
+      console.log(`npx hardhat verify --network baseSepolia ${contractAddress}`);
     } else {
-      console.log(err)
+      console.log("Verification failed:", err.message);
     }
   }
 };

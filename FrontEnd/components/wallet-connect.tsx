@@ -12,9 +12,9 @@ interface WalletConnectProps {
 }
 
 export default function WalletConnect({ handleModal }: { handleModal: () => void }) {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState("");
-  const { connectors, connect, error: wagmiError } = useConnect();
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [error, setError] = useState("")
+  const { connectors, connect } = useConnect();
 
 
   // const handleModal = () => {
@@ -54,61 +54,45 @@ export default function WalletConnect({ handleModal }: { handleModal: () => void
         style={{ animationDelay: "1s" }}
       ></div>
 
-      <Card className="w-full max-w-md crypto-card glow-card border-0">
+      <Card className="w-full max-w-md crypto-card glow-card border-0 !z-50">
         <CardHeader>
           <CardTitle className="text-2xl text-center gradient-text">Connect Your Wallet</CardTitle>
           <CardDescription className="text-center">Connect your blockchain wallet to access your gift cards and dashboard.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {(error || wagmiError) && (
+          {/* {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error || wagmiError?.message}</AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
-          )}
+          )} */}
 
-          {connectors
-            .filter(connector => connector.ready)
-            .map((connector) => (
-              <button
-                key={connector.id}
-                className="rounded-lg border border-primary/30 p-4 flex items-center gap-4 w-full cursor-pointer z-[999] hover:bg-primary/10 transition-colors"
-                onClick={async () => {
-                  setIsConnecting(true);
-                  setError("");
-                  try {
-                    await connect({ connector });
-                    handleModal();
-                  } catch (err) {
-                    setError("Failed to connect wallet. Please try again.");
-                  } finally {
-                    setIsConnecting(false);
-                  }
-                  console.log(connector);
-                }}
-                disabled={isConnecting}
-              >
-                <div className="bg-primary/20 p-2 rounded-full">
-                  <Wallet className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-lg font-medium">{connector.name}
-                    {isConnecting && " (Connecting...)"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {connector.id === 'injected' ? 'Browser wallet (MetaMask, etc.)' :
-                      connector.id === 'metaMask' ? 'MetaMask wallet' :
-                        connector.id === 'coinbaseWallet' ? 'Coinbase Wallet' : 'Connect wallet'}
-                  </p>
-                </div>
-              </button>
-            ))}
+          {connectors.map((connector) => (
+            <div className="rounded-lg border border-primary/30 p-4 flex items-center gap-4 cursor-pointer hover:bg-primary/10 transition-colors" key={connector.id}
+              onClick={async () => {
+                setIsConnecting(true);
+                setError("");
+                try {
+                  await connect({ connector });
+                  handleModal();
+                } catch (err) {
+                  setError("Failed to connect wallet. Please try again.");
+                } finally {
+                  setIsConnecting(false);
+                }
+                console.log(connector);
+              }}>
+              <div className="bg-primary/20 p-2 rounded-full">
+                <img src={connector.icon} className="w-6 h-6" alt="" />
+              </div>
+              <div>
+                {/* <h3 className="font-medium">MetaMask</h3> */}
 
-
-
-
-
+                <p className="text-lg text-muted-foreground">{connector.name}</p>
+              </div>
+            </div>
+          ))}
           {/* {connectors.map((connector) => (
             <button
               key={connector.id}

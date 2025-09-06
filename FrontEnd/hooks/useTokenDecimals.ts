@@ -1,12 +1,12 @@
 // hooks/useTokenDecimals.ts
-import { useContractRead } from "wagmi";
+import { useReadContract } from "wagmi";
 import { useState, useEffect } from "react";
 import erc20ABI from "../abi/erc20ABI.json"; // Adjust path to your ERC-20 ABI
 
 export function useTokenDecimals(tokenAddress: string) {
   const [cachedDecimals, setCachedDecimals] = useState<number | undefined>(undefined);
 
-  const { data, isError, isLoading } = useContractRead({
+  const { data, isError, isLoading } = useReadContract({
     address: tokenAddress as `0x${string}`,
     abi: erc20ABI,
     functionName: "decimals",

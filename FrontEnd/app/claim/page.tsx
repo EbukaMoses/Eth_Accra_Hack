@@ -12,7 +12,7 @@ import GiftChainABI from "../../abi/GiftChain.json"
 import erc20ABI from "../../abi/erc20ABI.json"
 import { useAccount, useWalletClient } from "wagmi"
 
-const CONTRACT_ADDRESS = "0x280593931820aBA367dB060162cA03CD59EC29c9"
+const CONTRACT_ADDRESS = '0xd657148c0039FdDA023281BBc4A4C2a123844380';
 const PROVIDER_URL = "https://eth-sepolia.g.alchemy.com/v2/uoHUh-NxGIzghN1job_SDZjGuQQ7snrT"
 
 interface ValidationErrors {
@@ -53,7 +53,7 @@ export default function ClaimGiftCard() {
     useEffect(() => {
         try {
             const newProvider = new ethers.JsonRpcProvider(PROVIDER_URL)
-            const newContract = new ethers.Contract(CONTRACT_ADDRESS, GiftChainABI, newProvider)
+            const newContract = new ethers.Contract(CONTRACT_ADDRESS as string, GiftChainABI, newProvider)
             setProvider(newProvider)
             setContract(newContract)
         } catch (error) {
@@ -178,7 +178,7 @@ export default function ClaimGiftCard() {
             return;
         }
 
-        if(validationResult.details.sender === ethers.keccak256(ethers.getAddress(address!))) {
+        if (validationResult.details.sender === ethers.keccak256(ethers.getAddress(address!))) {
             toast({
                 title: "Error",
                 description: "You cannot claim your own valid gift.",
@@ -203,7 +203,7 @@ export default function ClaimGiftCard() {
             // Then get provider and signer
             const provider = new ethers.BrowserProvider(walletClient!.transport);
             const signer = await provider.getSigner();
-            const contract = new ethers.Contract(CONTRACT_ADDRESS, GiftChainABI, signer);
+            const contract = new ethers.Contract(CONTRACT_ADDRESS as string, GiftChainABI, signer);
 
             // Send transaction
             // const tx = await contract.claimGift(codeHash);

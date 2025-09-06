@@ -1,16 +1,5 @@
 [
 	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_relayer",
-				"type": "address"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
 		"inputs": [],
 		"name": "ARRAY_LENGTH_MISMATCH",
 		"type": "error"
@@ -108,11 +97,6 @@
 	{
 		"inputs": [],
 		"name": "ONLY_CONTRACT_HAS_ACCESS",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "ONLY_RELAYER_HAS_ACCESS",
 		"type": "error"
 	},
 	{

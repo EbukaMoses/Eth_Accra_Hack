@@ -1,0 +1,32 @@
+specVersion: 1.3.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: GiftChain
+    network: base-sepolia
+    source:
+      address: "0xd657148c0039FdDA023281BBc4A4C2a123844380"
+      abi: GiftChain
+      startBlock: 30675042
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - GiftClaimed
+        - GiftCreated
+        - GiftReclaimed
+      abis:
+        - name: GiftChain
+          file: ./abis/GiftChain.json
+      eventHandlers:
+        - event: GiftClaimed(indexed bytes32,indexed address,uint256,string)
+          handler: handleGiftClaimed
+        - event: GiftCreated(indexed bytes32,indexed bytes32,indexed address,string,uint256,uint256,uint256,string)
+          handler: handleGiftCreated
+        - event: GiftReclaimed(indexed bytes32,indexed address,uint256,string)
+          handler: handleGiftReclaimed
+      file: ./src/gift-chain.ts

@@ -36,12 +36,12 @@ import ERC20_ABI from "@/abi/ERC20_ABI.json";
 import { AreaChart, BarChart, PieChart as PieChartComponent } from "@/components/ui/chart";
 
 // Contract address
-const CONTRACT_ADDRESS = "0xd657148c0039FdDA023281BBc4A4C2a123844380";
+// const CONTRACT_ADDRESS = "0x280593931820aBA367dB060162cA03CD59EC29c9";
 
 // Stable coins address supported
-const USDT = '0x7A8532Bd4067cD5C9834cD0eCcb8e71088c9fbf8'; // Sepolia USDT
-const USDC = '0x437011e4f16a4Be60Fe01aD6678dBFf81AEbaEd4'; // Sepolia USDC
-const DAI = '0xA0c61934a9bF661c0f41db06538e6674CDccFFf2'; // Sepolia DAI
+const USDT = '0x781AF087053e383Ae3774738b152B5A99630214c'; // Sepolia USDT
+const USDC = '0xA47a06F016f4107101f1cb39085f517Ef9E72681'; // Sepolia USDC
+const DAI = '0xBdF75f5eB8076d5F8bA33A68d0a0003bcd6F6e8e'; // Sepolia DAI
 const PROVIDER_URL = "https://eth-sepolia.g.alchemy.com/v2/uoHUh-NxGIzghN1job_SDZjGuQQ7snrT"
 
 // const provider = new ethers.JsonRpcProvider(PROVIDER_URL)

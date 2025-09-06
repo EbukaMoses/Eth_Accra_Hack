@@ -1,0 +1,8 @@
+{
+  "base-sepolia": {
+    "GiftChain": {
+      "address": "0xd657148c0039FdDA023281BBc4A4C2a123844380",
+      "startBlock": 30675042
+    }
+  }
+}

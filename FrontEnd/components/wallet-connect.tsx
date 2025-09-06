@@ -70,18 +70,10 @@ export default function WalletConnect({ handleModal }: { handleModal: () => void
 
           {connectors.map((connector) => (
             <div className="rounded-lg border border-primary/30 p-4 flex items-center gap-4 cursor-pointer hover:bg-primary/10 transition-colors" key={connector.id}
-              onClick={async () => {
-                setIsConnecting(true);
-                setError("");
-                try {
-                  await connect({ connector });
-                  handleModal();
-                } catch (err) {
-                  setError("Failed to connect wallet. Please try again.");
-                } finally {
-                  setIsConnecting(false);
-                }
-                console.log(connector);
+              onClick={() => {
+                connect({ connector });
+                handleModal();
+                console.log(connector)
               }}>
               <div className="bg-primary/20 p-2 rounded-full">
                 <img src={connector.icon} className="w-6 h-6" alt="" />

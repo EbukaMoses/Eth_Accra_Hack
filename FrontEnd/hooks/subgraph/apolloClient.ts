@@ -3,7 +3,8 @@ import { ApolloClient, InMemoryCache, HttpLink } from "@apollo/client";
 
 const client = new ApolloClient({
   link: new HttpLink({
-    uri: "https://api.studio.thegraph.com/query/107458/gift-chain/v0.1.1",
+    uri: "https://api.studio.thegraph.com/query/107307/eth-accra-giftchain/v0.0.1",
+    // uri: "https://api.studio.thegraph.com/query/107458/gift-chain/v0.1.1",
   }),
   cache: new InMemoryCache(),
 });

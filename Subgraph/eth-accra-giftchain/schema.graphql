@@ -1,6 +1,28 @@
+type User @entity(immutable: false) {
+  id: Bytes!
+  giftsCreated: [Gift!]! @derivedFrom(field: "creator")
+}
+
+type Gift @entity(immutable: false) {
+  id: Bytes!
+  giftID: Bytes!
+  creator: User!
+  token: Bytes!
+  message: String!
+  amount: BigInt!
+  expiry: BigInt!
+  timeCreated: BigInt!
+  status: String!
+  recipient: Bytes
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
 type GiftClaimed @entity(immutable: true) {
   id: Bytes!
   giftID: Bytes! # bytes32
+  gift: Gift!
   recipient: Bytes! # address
   amount: BigInt! # uint256
   status: String! # string
@@ -27,6 +49,7 @@ type GiftCreated @entity(immutable: true) {
 type GiftReclaimed @entity(immutable: true) {
   id: Bytes!
   giftID: Bytes! # bytes32
+  gift: Gift!
   recipient: Bytes! # address
   amount: BigInt! # uint256
   status: String! # string
